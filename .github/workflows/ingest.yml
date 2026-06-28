@@ -2,6 +2,7 @@ name: Daily Ingest
 
 on:
   schedule:
+    # Runs every day at 8am UTC
     - cron: '0 8 * * *'
   workflow_dispatch:
 
