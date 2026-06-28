@@ -1,0 +1,37 @@
+name: Daily Ingest
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install backend dependencies
+        run: npm install
+        working-directory: backend
+
+      - name: Run ingest cycle
+        run: npm run ingest
+        working-directory: backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit new tool cards
+        run: |
+          git config user.name "AI Resource Hub Bot"
+          git config user.email "bot@airesourcehub.vercel.app"
+          git add content/
+          git diff --staged --quiet && echo "No new tools today." || git commit -m "chore: ingest $(date -u +%Y-%m-%d)"
+          git push
