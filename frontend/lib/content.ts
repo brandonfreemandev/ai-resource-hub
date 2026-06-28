@@ -14,7 +14,23 @@ import { slugForCategoryName } from './categories';
  *   content/heartbeat.json  — last ingestion-cycle status
  */
 
-const CONTENT_DIR = path.join(process.cwd(), '..', 'content');
+// Try multiple candidate locations so this works across local dev, Vercel, and Cloudflare Workers.
+// In local dev, process.cwd() is frontend/ so ../content is correct.
+// In Cloudflare Workers, process.cwd() is / so /content is correct (files are traced from monorepo root).
+// CONTENT_DIR env var allows an explicit override when needed.
+function resolveContentDir(): string {
+  if (process.env.CONTENT_DIR) return path.resolve(process.env.CONTENT_DIR);
+  const candidates = [
+    path.join(process.cwd(), '..', 'content'),
+    path.join(process.cwd(), 'content'),
+    '/content',
+  ];
+  for (const dir of candidates) {
+    try { fs.accessSync(dir); return dir; } catch { /* try next */ }
+  }
+  return candidates[0];
+}
+const CONTENT_DIR = resolveContentDir();
 const TOOLS_DIR = path.join(CONTENT_DIR, 'tools');
 
 function safeNumber(v: unknown, fallback = 0): number {
